@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>SolRealm — Solana-Powered Multiplayer RPG</title>
+        <link rel="stylesheet" href="styles.css"></link> 
+        <link rel="icon" type="image/x-icon" href="/favicon.ico">
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="description" content="SolRealm — A Solana-powered multiplayer 3D RPG. Connect your Phantom wallet and explore." />
+    </head>
+    <body class="disable-selection">
+        <div id="loadingScreen">
+            <div class="vertical-center">
+                <br>
+                <div id="loadingText" style="color: #9945FF; font-family: monospace;">⚔️ SolRealm</div>
+                <div id="loadingTextDetails" style="color: #00FFA3;"></div>
+            </div>
+        </div>
+        <canvas id="renderCanvas"></canvas>
+        <script rel="dns-prefetch" src="./lib/pep.js"></script>
+        <script src="./js/bundle.js"></script>
+    </body>
+</html>
