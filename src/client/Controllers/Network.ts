@@ -8,9 +8,12 @@ export class Network {
 
     constructor(port) {
         // create colyseus client
-        let url = "wss://" + window.location.hostname;
+        let url;
         if (isLocal()) {
             url = "ws://localhost:" + port;
+        } else {
+            // Production: connect to Render server
+            url = "wss://solrealm.onrender.com";
         }
         this._client = new Client(url);
     }
