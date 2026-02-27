@@ -1,23 +1,263 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        <meta charset="UTF-8">
-        <title>SolRealm — Solana-Powered Multiplayer RPG</title>
-        <link rel="stylesheet" href="styles.css"></link> 
-        <link rel="icon" type="image/x-icon" href="/favicon.ico">
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="description" content="SolRealm — A Solana-powered multiplayer 3D RPG. Connect your Phantom wallet and explore." />
-    </head>
-    <body class="disable-selection">
-        <div id="loadingScreen">
-            <div class="vertical-center">
-                <br>
-                <div id="loadingText" style="color: #9945FF; font-family: monospace;">⚔️ SolRealm</div>
-                <div id="loadingTextDetails" style="color: #00FFA3;"></div>
-            </div>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SolRealm - Solana RPG</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0f0f1a 100%);
+            color: #fff;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            text-align: center;
+            padding: 40px;
+            max-width: 600px;
+        }
+        h1 {
+            font-size: 3rem;
+            background: linear-gradient(90deg, #00ff88, #00ccff, #ff00ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 20px;
+            text-shadow: 0 0 30px rgba(0,255,136,0.3);
+        }
+        .subtitle {
+            color: #888;
+            font-size: 1.2rem;
+            margin-bottom: 40px;
+        }
+        .connect-btn {
+            background: linear-gradient(90deg, #00ff88, #00cc66);
+            border: none;
+            padding: 18px 50px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #000;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 30px rgba(0,255,136,0.4);
+        }
+        .connect-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 50px rgba(0,255,136,0.6);
+        }
+        .connect-btn:disabled {
+            background: #333;
+            color: #666;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        .status {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .status-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ff4444;
+            margin-right: 10px;
+            animation: pulse 2s infinite;
+        }
+        .status-dot.connected { background: #00ff88; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .log {
+            margin-top: 20px;
+            text-align: left;
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: #00ff88;
+            background: #000;
+            padding: 15px;
+            border-radius: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .wallet-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(0,255,136,0.1);
+            border-radius: 10px;
+            border: 1px solid rgba(0,255,136,0.3);
+        }
+        .wallet-btn {
+            background: linear-gradient(90deg, #9945ff, #14f195);
+            border: none;
+            padding: 12px 30px;
+            font-size: 1rem;
+            color: #fff;
+            border-radius: 25px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .wallet-info {
+            display: none;
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚔️ SolRealm</h1>
+        <p class="subtitle">Solana-Powered Multiplayer RPG</p>
+        
+        <div class="wallet-section">
+            <div style="color: #00ff88; font-weight: bold;">🔗 Connect Wallet</div>
+            <button class="wallet-btn" onclick="connectWallet()">Connect Phantom</button>
+            <div class="wallet-info" id="walletInfo"></div>
         </div>
-        <canvas id="renderCanvas"></canvas>
-        <script rel="dns-prefetch" src="./lib/pep.js"></script>
-        <script src="./js/bundle.js"></script>
-    </body>
+        
+        <br><br>
+        
+        <button class="connect-btn" id="playBtn" onclick="startGame()">🎮 PLAY NOW</button>
+        
+        <div class="status">
+            <span class="status-dot" id="statusDot"></span>
+            <span id="statusText">Connecting to server...</span>
+        </div>
+        
+        <div class="log" id="log"></div>
+    </div>
+
+    <script src="https://unpkg.com/@solana/wallet-adapter-dialogs@0.0.4"></script>
+    <script src="https://unpkg.com/@solana/wallet-adapter-wallets@0.0.5"></script>
+    <script src="https://unpkg.com/@solana/web3.js@1.73.0"></script>
+    <script src="https://unpkg.com/@colyseus/client@0.15.0"></script>
+    
+    <script>
+        const SERVER_URL = 'wss://solrealm.onrender.com';
+        let client = null;
+        let room = null;
+        let connected = false;
+        
+        function log(msg) {
+            const logEl = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            logEl.innerHTML += `<div>[${time}] ${msg}</div>`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+        
+        function updateStatus(connected, msg) {
+            const dot = document.getElementById('statusDot');
+            const text = document.getElementById('statusText');
+            if (connected) {
+                dot.classList.add('connected');
+            }
+            text.textContent = msg;
+        }
+        
+        async function connectWallet() {
+            log('Connecting wallet...');
+            // Check for Phantom
+            if (window.solana && window.solana.isPhantom) {
+                try {
+                    const resp = await window.solana.connect();
+                    const info = document.getElementById('walletInfo');
+                    info.style.display = 'block';
+                    info.innerHTML = `✅ Connected: ${resp.publicKey.toString().slice(0,8)}...${resp.publicKey.toString().slice(-4)}`;
+                    log('Wallet connected: ' + resp.publicKey.toString());
+                } catch(e) {
+                    log('Wallet connection failed: ' + e.message);
+                }
+            } else {
+                log('Phantom wallet not found! Please install Phantom.');
+                alert('Please install Phantom Wallet extension');
+            }
+        }
+        
+        async function startGame() {
+            const btn = document.getElementById('playBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Connecting...';
+            
+            log('Connecting to ' + SERVER_URL);
+            
+            try {
+                client = new Colyseus.Client(SERVER_URL);
+                
+                client.onOpen.add(() => {
+                    connected = true;
+                    updateStatus(true, 'Connected to server!');
+                    log('WebSocket connected!');
+                    
+                    // Try to join a room
+                    joinGame();
+                });
+                
+                client.onClose.add(() => {
+                    connected = false;
+                    updateStatus(false, 'Disconnected');
+                    log('Connection closed');
+                });
+                
+                client.onError.add((err) => {
+                    log('Error: ' + err.message);
+                });
+                
+                // Timeout after 10 seconds
+                setTimeout(() => {
+                    if (!connected) {
+                        log('Connection timeout - server may be down');
+                        btn.disabled = false;
+                        btn.textContent = '🎮 PLAY NOW';
+                    }
+                }, 10000);
+                
+            } catch(e) {
+                log('Failed to connect: ' + e.message);
+                btn.disabled = false;
+                btn.textContent = '🎮 PLAY NOW';
+            }
+        }
+        
+        async function joinGame() {
+            try {
+                log('Looking for game room...');
+                room = await client.joinOrCreate("game_room");
+                
+                log('Joined room: ' + room.roomId);
+                log('Waiting for game to start...');
+                
+                room.onStateChange.add((state) => {
+                    log('Game state updated');
+                });
+                
+                room.onMessage.add((message) => {
+                    log('Server: ' + JSON.stringify(message));
+                });
+                
+            } catch(e) {
+                log('Failed to join room: ' + e.message);
+            }
+        }
+        
+        // Auto-connect on load
+        window.addEventListener('load', () => {
+            log('SolRealm client loaded');
+            updateStatus(false, 'Ready to play');
+        });
+    </script>
+</body>
 </html>
