@@ -12,7 +12,7 @@
         "client-build": "webpack --config webpack.prod.js",
         "server-debug": "ts-node-dev --respawn --inspect --transpile-only src/server/index.ts",
         "server-dev": "ts-node-dev --respawn --inspect --transpile-only src/server/index.ts",
-        "server-start": "node dist/server/server/index.js",
+        "server-start": "node dist/server/src/server/index.js",
         "server-build": "npx tsc --skipLibCheck && cp -r public dist",
         "loadtest": "npx tsx loadtest/test.ts --room game_room --numClients 10 --endpoint ws://localhost:3000"
     },
